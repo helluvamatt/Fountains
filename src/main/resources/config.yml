@@ -1,0 +1,6 @@
+dynmap:
+  showFountains: true
+  showIntakes: false
+  showValves: false
+  showPipes: false
+

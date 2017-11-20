@@ -1,0 +1,30 @@
+name: Fountains
+main: com.schneenet.fountainsplugin.FountainsPlugin
+version: 0.0.1-SNAPSHOT
+author: helluvamatt
+commands:
+  fountains:
+    description: Configure and use Fountains.
+    usage: /fountains <action> [<args> ...]
+    permission: fountains.fountains
+    permission-message: You don't have permission to configure and use Fountains.
+  intakes:
+    description: Configure and use Intakes.
+    usage: /intakes <action> [<args> ...]
+    permission: fountains.intakes
+    permission-message: You don't have permission to configure and use Intakes.
+  valves:
+    description: Configure and use Valves.
+    usage: /valves <action> [<args> ...]
+    permission: fountains.valves
+    permission-message: You don't have permission to configure and use Valves.
+permissions:
+  fountains.fountains:
+    description: Allows use of the /fountains command to configure Fountains
+    default: op
+  fountains.intakes:
+    description: Allows use of the /intakes command to configure Intakes
+    default: op
+  fountains.valves:
+    description: Allows use of the /valves command to configure Valves
+    default: op
