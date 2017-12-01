@@ -14,6 +14,10 @@ A hopper can be configured as an intake. Intakes suck water in from above them a
 
 A redstone lamp can be configured as a valve. Valves allow water through when they are activated with redstone.
 
+## Sprinklers
+
+A dispenser pointing down can be configured as a sprinkler. Sprinklers will spray water particles in a circle from 1 to 6 blocks in radius.
+
 ## Pipes
 
 Cobblestone walls connected together become pipes when they are connected to an intake. Pipes supply water to fountains, and flow can be stopped with valves.
