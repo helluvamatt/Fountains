@@ -2,17 +2,17 @@ package com.schneenet.fountainsplugin.actions;
 
 import com.schneenet.fountainsplugin.FountainsManager;
 import com.schneenet.fountainsplugin.Utils;
-import com.schneenet.fountainsplugin.models.Intake;
+import com.schneenet.fountainsplugin.models.Sprinkler;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
-public class RemoveIntakeAction extends Action {
+public class RemoveSprinklerAction extends Action {
 
 	private static final String USAGE = "Usage: /intake remove <name>";
 
 	private FountainsManager manager;
 
-	public RemoveIntakeAction(FountainsManager manager, String[] args) {
+	public RemoveSprinklerAction(FountainsManager manager, String[] args) {
 		super(args);
 		this.manager = manager;
 	}
@@ -24,15 +24,16 @@ public class RemoveIntakeAction extends Action {
 			return;
 		}
 		String name = args[0];
-		Intake intake = manager.getIntake(name);
-		if (intake != null) {
-			if (manager.removeIntake(intake)) {
-				sender.sendMessage(ChatColor.GREEN + "Intake removed.");
+		Sprinkler sprinkler = manager.getSprinkler(name);
+		if (sprinkler != null) {
+			if (manager.removeSprinkler(sprinkler)) {
+				sender.sendMessage(ChatColor.GREEN + "Sprinkler removed.");
 			} else {
-				sender.sendMessage(ChatColor.RED + "An error occurred while removing the intake.");
+				sender.sendMessage(ChatColor.RED + "An error occurred while removing the sprinkler.");
 			}
 		} else {
-			sender.sendMessage(ChatColor.RED + "Intake not found with that name.");
+			sender.sendMessage(ChatColor.RED + "Sprinkler not found with that name.");
 		}
 	}
+
 }

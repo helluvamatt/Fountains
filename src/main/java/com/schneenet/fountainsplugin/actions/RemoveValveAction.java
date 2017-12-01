@@ -25,8 +25,11 @@ public class RemoveValveAction extends Action {
 		String name = args[0];
 		Valve valve = manager.getValve(name);
 		if (valve != null) {
-			manager.removeValve(valve);
-			sender.sendMessage(ChatColor.GREEN + "Valve removed.");
+			if (manager.removeValve(valve)) {
+				sender.sendMessage(ChatColor.GREEN + "Valve removed.");
+			} else {
+				sender.sendMessage(ChatColor.RED + "An error occurred while removing the valve.");
+			}
 		} else {
 			sender.sendMessage(ChatColor.RED + "Valve not found with that name.");
 		}

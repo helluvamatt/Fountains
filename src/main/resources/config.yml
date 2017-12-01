@@ -2,5 +2,7 @@ dynmap:
   showFountains: true
   showIntakes: false
   showValves: false
+  showSprinklers: false
   showPipes: false
+strings:
 

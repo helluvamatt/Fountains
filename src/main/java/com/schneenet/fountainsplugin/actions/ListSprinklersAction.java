@@ -5,11 +5,11 @@ import com.schneenet.fountainsplugin.Utils;
 
 import java.util.List;
 
-public class ListIntakesAction extends PagedListingAction {
+public class ListSprinklersAction extends PagedListingAction {
 
 	private FountainsManager manager;
 
-	public ListIntakesAction(FountainsManager manager, String[] args)
+	public ListSprinklersAction(FountainsManager manager, String[] args)
 	{
 		super(args);
 		this.manager = manager;
@@ -17,6 +17,6 @@ public class ListIntakesAction extends PagedListingAction {
 
 	@Override
 	List<String> getItems() {
-		return select(manager.getIntakes(), Utils::toChatString);
+		return select(manager.getSprinklers(), Utils::toChatString);
 	}
 }

@@ -33,6 +33,6 @@ public class QueryAction extends Action {
 				return;
 			}
 		}
-		player.sendMessage(Utils.colorSpan(ChatColor.RED, "There is no fountain, intake, or valve at that location."));
+		player.sendMessage(Utils.colorSpan(ChatColor.RED, "There is no fountain, intake, valve, or sprinkler at that location."));
 	}
 }

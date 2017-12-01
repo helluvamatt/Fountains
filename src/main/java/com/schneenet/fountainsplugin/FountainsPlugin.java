@@ -1,6 +1,7 @@
 package com.schneenet.fountainsplugin;
 
 import com.schneenet.fountainsplugin.actions.*;
+import com.schneenet.fountainsplugin.config.FountainsConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -18,6 +19,7 @@ public class FountainsPlugin extends JavaPlugin {
 	private static final String CMD_FOUNTAINS = "fountains";
 	private static final String CMD_INTAKES = "intakes";
 	private static final String CMD_VALVES = "valves";
+	private static final String CMD_SPRINKLERS = "sprinklers";
 
 	private static final String ACTION_CREATE = "create";
 	private static final String ACTION_REMOVE = "remove";
@@ -33,7 +35,7 @@ public class FountainsPlugin extends JavaPlugin {
 			saveDefaultConfig();
 			File dbFile = new File(dataFolder, DB_NAME);
 			FountainsDal dal = new FountainsDal(dbFile);
-			this.manager = new FountainsManager(this, dal, getLogger());
+			this.manager = new FountainsManager(this, new FountainsConfig(getConfig()), dal, getLogger());
 			getServer().getPluginManager().registerEvents(manager, this);
 			getServer().getScheduler().scheduleSyncRepeatingTask(this, manager, 0L, 1L);
 		} catch (DalException ex) {
@@ -108,6 +110,28 @@ public class FountainsPlugin extends JavaPlugin {
 					return true;
 				} else if (action.equalsIgnoreCase(ACTION_REMOVE)) {
 					new RemoveValveAction(manager, argList.toArray(new String[]{})).run(sender);
+					return true;
+				} else if (action.equalsIgnoreCase(ACTION_QUERY)) {
+					new QueryAction(manager, argList.toArray(new String[] {})).run(sender);
+					return true;
+				} else {
+					sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Invalid action.") + " <action> must be one of 'create', 'remove', 'list', 'query'.");
+				}
+			} else {
+				sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Not enough arguments."));
+			}
+		} else if (command.getName().equalsIgnoreCase(CMD_SPRINKLERS)) {
+			if (!sender.hasPermission("fountains.sprinklers")) return false;
+			String action = argList.isEmpty() ? null : argList.remove(0);
+			if (action != null) {
+				if (action.equalsIgnoreCase(ACTION_LIST)) {
+					new ListSprinklersAction(manager, argList.toArray(new String[]{})).run(sender);
+					return true;
+				} else if (action.equalsIgnoreCase(ACTION_CREATE)) {
+					new CreateSprinklerAction(manager, argList.toArray(new String[]{})).run(sender);
+					return true;
+				} else if (action.equalsIgnoreCase(ACTION_REMOVE)) {
+					new RemoveSprinklerAction(manager, argList.toArray(new String[]{})).run(sender);
 					return true;
 				} else if (action.equalsIgnoreCase(ACTION_QUERY)) {
 					new QueryAction(manager, argList.toArray(new String[] {})).run(sender);

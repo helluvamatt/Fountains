@@ -16,6 +16,6 @@ public class ListValvesAction extends PagedListingAction {
 
 	@Override
 	List<String> getItems() {
-		return select(manager.getValves(), (item) -> Utils.toChatString(item));
+		return select(manager.getValves(), Utils::toChatString);
 	}
 }

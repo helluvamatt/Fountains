@@ -1,9 +1,8 @@
 package com.schneenet.fountainsplugin;
 
-import com.schneenet.fountainsplugin.models.Fountain;
-import com.schneenet.fountainsplugin.models.Intake;
-import com.schneenet.fountainsplugin.models.RedstoneRequirementState;
-import com.schneenet.fountainsplugin.models.Valve;
+import com.schneenet.fountainsplugin.models.*;
+import org.sqlite.SQLiteErrorCode;
+import org.sqlite.SQLiteException;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,7 +15,7 @@ import java.util.List;
  *
  * @author Matt Schneeberger
  */
-public class FountainsDal {
+class FountainsDal {
 	private File databaseFile;
 
 	private static final String INITIALIZE_SCHEMA = "CREATE TABLE IF NOT EXISTS schema (version INTEGER NOT NULL)";
@@ -27,6 +26,10 @@ public class FountainsDal {
 					"CREATE TABLE IF NOT EXISTS fountains (name TEXT UNIQUE, world TEXT, x INTEGER, y INTEGER, z INTEGER, power INTEGER, redstone INTEGER)",
 					"CREATE TABLE IF NOT EXISTS intakes (name TEXT UNIQUE, world TEXT, x INTEGER, y INTEGER, z INTEGER, speed INTEGER, redstone INTEGER)",
 					"CREATE TABLE IF NOT EXISTS valves (name TEXT UNIQUE, world TEXT, x INTEGER, y INTEGER, z INTEGER)"
+			},
+			{
+					// Version 2
+					"CREATE TABLE IF NOT EXISTS sprinklers (name TEXT UNIQUE, world TEXT, x INTEGER, y INTEGER, z INTEGER, spread INTEGER, redstone INTEGER)",
 			}
 	};
 
@@ -36,7 +39,7 @@ public class FountainsDal {
 	 * @param databaseFile Database file
 	 * @throws DalException When an error occurs
 	 */
-	public FountainsDal(File databaseFile) throws DalException {
+	FountainsDal(File databaseFile) throws DalException {
 		try {
 			this.databaseFile = databaseFile;
 			this.databaseFile.createNewFile();
@@ -73,13 +76,7 @@ public class FountainsDal {
 		}
 	}
 
-	/**
-	 * Get all fountains in the database
-	 *
-	 * @return List of Fountain
-	 * @throws DalException When an error occurs
-	 */
-	public List<Fountain> getFountains() throws DalException {
+	List<Fountain> getFountains() throws DalException {
 		try {
 			Connection conn = this.openConnection();
 			Statement stmt = conn.createStatement();
@@ -97,40 +94,7 @@ public class FountainsDal {
 		}
 	}
 
-	/**
-	 * Get a fountain by its row ID
-	 *
-	 * @param id ID
-	 * @return Fountain, null if no fountain exists with the given row ID
-	 * @throws DalException When an error occurs
-	 */
-	public Fountain getFountain(long id) throws DalException {
-		try {
-			Fountain returnVal = null;
-			Connection conn = this.openConnection();
-			PreparedStatement stmt = conn.prepareStatement("SELECT name, world, x, y, z, power, redstone, rowid FROM fountains WHERE rowid = ?");
-			stmt.setLong(1, id);
-			ResultSet rs = stmt.executeQuery();
-			if (rs.next()) {
-				returnVal = new Fountain(rs.getString(1), rs.getString(2), rs.getLong(3), rs.getLong(4), rs.getLong(5), rs.getInt(6), RedstoneRequirementState.valueOf(rs.getInt(7)), rs.getLong(8));
-			}
-			rs.close();
-			stmt.close();
-			conn.close();
-			return returnVal;
-		} catch (SQLException ex) {
-			throw new DalException(ex);
-		}
-	}
-
-	/**
-	 * Get a single fountain by name
-	 *
-	 * @param name Name
-	 * @return Fountain, null if no fountain exists by the given name
-	 * @throws DalException When an error occurs
-	 */
-	public Fountain getFountain(String name) throws DalException {
+	Fountain getFountain(String name) throws DalException {
 		try {
 			Fountain returnVal = null;
 			Connection conn = this.openConnection();
@@ -149,14 +113,7 @@ public class FountainsDal {
 		}
 	}
 
-	/**
-	 * Persist a fountain to the database
-	 *
-	 * @param fountain Fountain to persist
-	 * @return true on success
-	 * @throws DalException When an error occurs
-	 */
-	public boolean saveFountain(Fountain fountain) throws DalException {
+	void saveFountain(Fountain fountain) throws DalException, DuplicateKeyException {
 		try {
 			Connection conn = null;
 			PreparedStatement pStmt = null;
@@ -167,7 +124,7 @@ public class FountainsDal {
 					pStmt.setInt(1, fountain.getPower());
 					pStmt.setInt(2, fountain.getRedstoneRequirementState().getValue());
 					pStmt.setLong(3, fountain.getId());
-					return pStmt.executeUpdate() == 1;
+					pStmt.executeUpdate();
 				} else {
 					pStmt = conn.prepareStatement("INSERT INTO fountains (name, world, x, y, z, power, redstone) VALUES (?, ?, ?, ?, ?, ?, ?)");
 					pStmt.setString(1, fountain.getName());
@@ -182,7 +139,6 @@ public class FountainsDal {
 						if (keyResult.next()) {
 							fountain.setId(keyResult.getLong(1));
 							keyResult.close();
-							return true;
 						}
 					}
 				}
@@ -192,20 +148,12 @@ public class FountainsDal {
 				if (conn != null)
 					conn.close();
 			}
-			return false;
 		} catch (SQLException ex) {
-			throw new DalException(ex);
+			handleSqlException(ex);
 		}
 	}
 
-	/**
-	 * Delete a fountain from the database
-	 *
-	 * @param fountain Fountain to delete
-	 * @return true if the fountain was deleted successfully
-	 * @throws DalException When an error occurs
-	 */
-	public boolean deleteFountain(Fountain fountain) throws DalException {
+	void deleteFountain(Fountain fountain) throws DalException {
 		try {
 			Connection conn = null;
 			PreparedStatement pStmt = null;
@@ -213,7 +161,7 @@ public class FountainsDal {
 				conn = this.openConnection();
 				pStmt = conn.prepareStatement("DELETE FROM fountains WHERE rowid = ?");
 				pStmt.setLong(1, fountain.getId());
-				return pStmt.executeUpdate() == 1;
+				pStmt.executeUpdate();
 			} finally {
 				if (pStmt != null)
 					pStmt.close();
@@ -225,13 +173,7 @@ public class FountainsDal {
 		}
 	}
 
-	/**
-	 * Get all Intakes
-	 *
-	 * @return List of Intake
-	 * @throws DalException When an error occurs
-	 */
-	public List<Intake> getIntakes() throws DalException {
+	List<Intake> getIntakes() throws DalException {
 		try {
 			Connection conn = this.openConnection();
 			Statement stmt = conn.createStatement();
@@ -249,40 +191,7 @@ public class FountainsDal {
 		}
 	}
 
-	/**
-	 * Get a single Intake by row ID
-	 *
-	 * @param id ID
-	 * @return Intake, null if none exists for the given row ID
-	 * @throws DalException When an error occurs
-	 */
-	public Intake getIntake(long id) throws DalException {
-		try {
-			Intake returnVal = null;
-			Connection conn = this.openConnection();
-			PreparedStatement stmt = conn.prepareStatement("SELECT name, world, x, y, z, speed, redstone, rowid FROM intakes WHERE rowid = ?");
-			stmt.setLong(1, id);
-			ResultSet rs = stmt.executeQuery();
-			if (rs.next()) {
-				returnVal = new Intake(rs.getString(1), rs.getString(2), rs.getLong(3), rs.getLong(4), rs.getLong(5), rs.getInt(6), RedstoneRequirementState.valueOf(rs.getInt(7)), rs.getLong(8));
-			}
-			rs.close();
-			stmt.close();
-			conn.close();
-			return returnVal;
-		} catch (SQLException ex) {
-			throw new DalException(ex);
-		}
-	}
-
-	/**
-	 * Get a single Intake by name
-	 *
-	 * @param name Name
-	 * @return Intake, null if none exists for the given name
-	 * @throws DalException When an error occurs
-	 */
-	public Intake getIntake(String name) throws DalException {
+	Intake getIntake(String name) throws DalException {
 		try {
 			Intake returnVal = null;
 			Connection conn = this.openConnection();
@@ -301,14 +210,7 @@ public class FountainsDal {
 		}
 	}
 
-	/**
-	 * Save an Intake to the database
-	 *
-	 * @param intake Intake to persist
-	 * @return true on success
-	 * @throws DalException When an error occurs
-	 */
-	public boolean saveIntake(Intake intake) throws DalException {
+	void saveIntake(Intake intake) throws DalException, DuplicateKeyException {
 		try {
 			Connection conn = null;
 			PreparedStatement pStmt = null;
@@ -318,7 +220,7 @@ public class FountainsDal {
 					pStmt = conn.prepareStatement("UPDATE intakes SET speed = ? WHERE rowid = ?");
 					pStmt.setInt(1, intake.getSpeed());
 					pStmt.setLong(2, intake.getId());
-					return pStmt.executeUpdate() == 1;
+					pStmt.executeUpdate();
 				} else {
 					pStmt = conn.prepareStatement("INSERT INTO intakes (name, world, x, y, z, speed) VALUES (?, ?, ?, ?, ?, ?)");
 					pStmt.setString(1, intake.getName());
@@ -332,7 +234,6 @@ public class FountainsDal {
 						if (keyResult.next()) {
 							intake.setId(keyResult.getLong(1));
 							keyResult.close();
-							return true;
 						}
 					}
 				}
@@ -342,20 +243,12 @@ public class FountainsDal {
 				if (conn != null)
 					conn.close();
 			}
-			return false;
 		} catch (SQLException ex) {
-			throw new DalException(ex);
+			handleSqlException(ex);
 		}
 	}
 
-	/**
-	 * Delete an Intake from the database
-	 *
-	 * @param intake Intake to delete
-	 * @return true on success
-	 * @throws DalException When an error occurs
-	 */
-	public boolean deleteIntake(Intake intake) throws DalException {
+	void deleteIntake(Intake intake) throws DalException {
 		try {
 			Connection conn = null;
 			PreparedStatement pStmt = null;
@@ -363,7 +256,7 @@ public class FountainsDal {
 				conn = this.openConnection();
 				pStmt = conn.prepareStatement("DELETE FROM intakes WHERE rowid = ?");
 				pStmt.setLong(1, intake.getId());
-				return pStmt.executeUpdate() == 1;
+				pStmt.executeUpdate();
 			} finally {
 				if (pStmt != null)
 					pStmt.close();
@@ -375,12 +268,7 @@ public class FountainsDal {
 		}
 	}
 
-	/**
-	 * Get all Valve objects
-	 * @return List of Valve objects
-	 * @throws DalException When an error occurs
-	 */
-	public List<Valve> getValves() throws DalException
+	List<Valve> getValves() throws DalException
 	{
 		try {
 			List<Valve> returnVal = new ArrayList<>();
@@ -399,39 +287,7 @@ public class FountainsDal {
 		}
 	}
 
-	/**
-	 * Get a Valve by its row ID
-	 * @param id ID
-	 * @return Valve, null if none exist
-	 * @throws DalException When an error occurs
-	 */
-	public Valve getValve(long id) throws DalException
-	{
-		try {
-			Valve returnVal = null;
-			Connection conn = this.openConnection();
-			PreparedStatement stmt = conn.prepareStatement("SELECT name, world, x, y, z, rowid FROM valves WHERE rowid = ?");
-			stmt.setLong(1, id);
-			ResultSet rs = stmt.executeQuery();
-			if (rs.next()) {
-				returnVal = new Valve(rs.getString(1), rs.getString(2), rs.getLong(3), rs.getLong(4), rs.getLong(5), rs.getLong(6));
-			}
-			rs.close();
-			stmt.close();
-			conn.close();
-			return returnVal;
-		} catch (SQLException ex) {
-			throw new DalException(ex);
-		}
-	}
-
-	/**
-	 * Get a Valve by name
-	 * @param name Name
-	 * @return Valve, null if none exists
-	 * @throws DalException When an error occurs
-	 */
-	public Valve getValve(String name) throws DalException
+	Valve getValve(String name) throws DalException
 	{
 		try {
 			Valve returnVal = null;
@@ -451,13 +307,7 @@ public class FountainsDal {
 		}
 	}
 
-	/**
-	 * Save a Valve to the database
-	 * @param valve Valve
-	 * @return true on success
-	 * @throws DalException When an error occurs
-	 */
-	public boolean saveValve(Valve valve) throws DalException
+	void saveValve(Valve valve) throws DalException, DuplicateKeyException
 	{
 		try {
 			Connection conn = null;
@@ -475,7 +325,6 @@ public class FountainsDal {
 					if (keyResult.next()) {
 						valve.setId(keyResult.getLong(1));
 						keyResult.close();
-						return true;
 					}
 				}
 			} finally {
@@ -484,19 +333,12 @@ public class FountainsDal {
 				if (conn != null)
 					conn.close();
 			}
-			return false;
 		} catch (SQLException ex) {
-			throw new DalException(ex);
+			handleSqlException(ex);
 		}
 	}
 
-	/**
-	 *
-	 * @param valve Valve to delete
-	 * @return true on success
-	 * @throws DalException When an error occurs
-	 */
-	public boolean deleteValve(Valve valve) throws DalException
+	void deleteValve(Valve valve) throws DalException
 	{
 		try {
 			Connection conn = null;
@@ -505,7 +347,90 @@ public class FountainsDal {
 				conn = this.openConnection();
 				pStmt = conn.prepareStatement("DELETE FROM valves WHERE rowid = ?");
 				pStmt.setLong(1, valve.getId());
-				return pStmt.executeUpdate() == 1;
+				pStmt.executeUpdate();
+			} finally {
+				if (pStmt != null)
+					pStmt.close();
+				if (conn != null)
+					conn.close();
+			}
+		} catch (SQLException ex) {
+			throw new DalException(ex);
+		}
+	}
+
+	List<Sprinkler> getSprinklers() throws DalException {
+		try {
+			List<Sprinkler> returnVal = new ArrayList<>();
+			Connection conn = this.openConnection();
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery("SELECT name, world, x, y, z, spread, redstone, rowid FROM sprinklers ORDER BY rowid ASC");
+			while (rs.next()) {
+				returnVal.add(new Sprinkler(rs.getString(1), rs.getString(2), rs.getLong(3), rs.getLong(4), rs.getLong(5), rs.getInt(6), RedstoneRequirementState.valueOf(rs.getInt(7)), rs.getLong(8)));
+			}
+			rs.close();
+			stmt.close();
+			conn.close();
+			return returnVal;
+		} catch (SQLException ex) {
+			throw new DalException(ex);
+		}
+	}
+
+	Sprinkler getSprinkler(String name) throws DalException {
+		try {
+			Sprinkler returnVal = null;
+			Connection conn = this.openConnection();
+			PreparedStatement stmt = conn.prepareStatement("SELECT name, world, x, y, z, spread, redstone, rowid FROM sprinklers WHERE name = ?");
+			stmt.setString(1, name);
+			ResultSet rs = stmt.executeQuery();
+			if (rs.next()) {
+				returnVal = new Sprinkler(rs.getString(1), rs.getString(2), rs.getLong(3), rs.getLong(4), rs.getLong(5), rs.getInt(6), RedstoneRequirementState.valueOf(rs.getInt(7)), rs.getLong(8));
+			}
+			rs.close();
+			stmt.close();
+			conn.close();
+			return returnVal;
+		} catch (SQLException ex) {
+			throw new DalException(ex);
+		}
+	}
+
+	void saveSprinkler(Sprinkler sprinkler) throws DalException, DuplicateKeyException {
+		try {
+			Connection conn = null;
+			PreparedStatement pStmt = null;
+			try {
+				conn = this.openConnection();
+				pStmt = conn.prepareStatement("INSERT INTO sprinklers (name, world, x, y, z, spread, redstone) VALUES (?, ?, ?, ?, ?, ?, ?)");
+				pStmt.setString(1, sprinkler.getName());
+				pStmt.setString(2, sprinkler.getWorldName());
+				pStmt.setLong(3, sprinkler.getX());
+				pStmt.setLong(4, sprinkler.getY());
+				pStmt.setLong(5, sprinkler.getZ());
+				pStmt.setInt(6, sprinkler.getSpread());
+				pStmt.setInt(7, sprinkler.getRedstoneRequirementState().getValue());
+				pStmt.executeUpdate();
+			} finally {
+				if (pStmt != null)
+					pStmt.close();
+				if (conn != null)
+					conn.close();
+			}
+		} catch (SQLException ex) {
+			handleSqlException(ex);
+		}
+	}
+
+	void deleteSprinkler(Sprinkler sprinkler) throws DalException {
+		try {
+			Connection conn = null;
+			PreparedStatement pStmt = null;
+			try {
+				conn = this.openConnection();
+				pStmt = conn.prepareStatement("DELETE FROM sprinklers WHERE rowid = ?");
+				pStmt.setLong(1, sprinkler.getId());
+				pStmt.executeUpdate();
 			} finally {
 				if (pStmt != null)
 					pStmt.close();
@@ -519,6 +444,14 @@ public class FountainsDal {
 
 	private Connection openConnection() throws SQLException {
 		return DriverManager.getConnection("jdbc:sqlite:" + this.databaseFile.getPath());
+	}
+
+	private void handleSqlException(SQLException ex) throws DalException, DuplicateKeyException {
+		if (ex instanceof SQLiteException && ((SQLiteException) ex).getResultCode() == SQLiteErrorCode.SQLITE_CONSTRAINT_UNIQUE) {
+			throw new DuplicateKeyException(ex);
+		} else {
+			throw new DalException(ex);
+		}
 	}
 
 }

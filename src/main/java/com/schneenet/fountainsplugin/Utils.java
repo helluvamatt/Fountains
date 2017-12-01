@@ -3,6 +3,7 @@ package com.schneenet.fountainsplugin;
 import com.schneenet.fountainsplugin.models.Fountain;
 import com.schneenet.fountainsplugin.models.ILocatable;
 import com.schneenet.fountainsplugin.models.Intake;
+import com.schneenet.fountainsplugin.models.Sprinkler;
 import org.bukkit.ChatColor;
 
 public class Utils {
@@ -31,6 +32,10 @@ public class Utils {
 		else if (item instanceof Intake) {
 			Intake intake = (Intake) item;
 			str = str + " Speed: " + colorSpan(ChatColor.AQUA, String.valueOf(intake.getSpeed())) + " Redstone: " + colorSpan(ChatColor.RED, intake.getRedstoneRequirementState().toString());
+		}
+		else if (item instanceof Sprinkler) {
+			Sprinkler sprinkler = (Sprinkler) item;
+			str = str + " Spread: " + colorSpan(ChatColor.AQUA, String.valueOf(sprinkler.getSpread())) + " Redstone: " + colorSpan(ChatColor.RED, sprinkler.getRedstoneRequirementState().toString());
 		}
 		return str;
 	}

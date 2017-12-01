@@ -18,6 +18,6 @@ public class ListFountainsAction extends PagedListingAction
 	@Override
 	List<String> getItems()
 	{
-		return select(manager.getFountains(), (item) -> Utils.toChatString(item));
+		return select(manager.getFountains(), Utils::toChatString);
 	}
 }

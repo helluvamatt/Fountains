@@ -1,9 +1,8 @@
 package com.schneenet.fountainsplugin;
 
-import com.schneenet.fountainsplugin.models.Fountain;
-import com.schneenet.fountainsplugin.models.ILocatable;
-import com.schneenet.fountainsplugin.models.Intake;
-import com.schneenet.fountainsplugin.models.Valve;
+import com.schneenet.fountainsplugin.config.FountainsConfig;
+import com.schneenet.fountainsplugin.config.R;
+import com.schneenet.fountainsplugin.models.*;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -21,11 +20,13 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.DirectionalContainer;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.Vector;
 import org.dynmap.DynmapAPI;
 import org.dynmap.markers.*;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class FountainsManager implements Listener, Runnable {
@@ -37,40 +38,41 @@ public class FountainsManager implements Listener, Runnable {
 	private static final String DYNMAP_MARKER_SET_INTAKE = "intakes";
 	private static final String DYNMAP_MARKER_ICON_VALVE = "valve";
 	private static final String DYNMAP_MARKER_SET_VALVE = "valves";
+	private static final String DYNMAP_MARKER_ICON_SPRINKLER = "sprinkler";
+	private static final String DYNMAP_MARKER_SET_SPRINKLER = "sprinklers";
 	private static final String DYNMAP_MARKER_SET_PIPES = "pipes";
-
-	private static final String CONFIG_DYNMAP_SHOW_FOUNTAINS = "dynmap.showFountains";
-	private static final String CONFIG_DYNMAP_SHOW_INTAKES = "dynmap.showIntakes";
-	private static final String CONFIG_DYNMAP_SHOW_VALVES = "dynmap.showValves";
-	private static final String CONFIG_DYNMAP_SHOW_PIPES = "dynmap.showPipes";
 
 	private boolean dynmapEnabled = false;
 	private MarkerSet dynmapFountains;
 	private MarkerSet dynmapIntakes;
 	private MarkerSet dynmapValves;
+	private MarkerSet dynmapSprinklers;
 	private MarkerSet dynmapPipes;
 
 	private HashMap<Location, Model<Fountain>> fountains;
 	private HashMap<Location, Model<Intake>> intakes;
 	private HashMap<Location, Model<Valve>> valves;
+	private HashMap<Location, Model<Sprinkler>> sprinklers;
 
 	private FountainsDal dal;
 	private Logger logger;
 	private FountainsPlugin plugin;
+	private FountainsConfig config;
 
 	private Random rng = new Random();
 
-	public FountainsManager(FountainsPlugin plugin, FountainsDal dal, Logger logger) {
+	public FountainsManager(FountainsPlugin plugin, FountainsConfig config, FountainsDal dal, Logger logger) {
 		this.plugin = plugin;
+		this.config = config;
 		this.dal = dal;
 		this.logger = logger;
 		fountains = new HashMap<>();
 		intakes = new HashMap<>();
 		valves = new HashMap<>();
+		sprinklers = new HashMap<>();
 
 		try {
-			List<Fountain> fountains = dal.getFountains();
-			for (Fountain fountain : fountains) {
+			for (Fountain fountain : dal.getFountains()) {
 				World world = plugin.getServer().getWorld(fountain.getWorldName());
 				if (world != null) {
 					enableFountain(fountain);
@@ -78,9 +80,9 @@ public class FountainsManager implements Listener, Runnable {
 					dal.deleteFountain(fountain);
 				}
 			}
+			logger.log(Level.INFO, String.format("Loaded %d Fountains from database.", fountains.size()));
 
-			List<Intake> intakes = dal.getIntakes();
-			for (Intake intake : intakes) {
+			for (Intake intake : dal.getIntakes()) {
 				World world = plugin.getServer().getWorld(intake.getWorldName());
 				if (world != null) {
 					enableIntake(intake);
@@ -88,9 +90,9 @@ public class FountainsManager implements Listener, Runnable {
 					dal.deleteIntake(intake);
 				}
 			}
+			logger.log(Level.INFO, String.format("Loaded %d Intakes from database.", intakes.size()));
 
-			List<Valve> valves = dal.getValves();
-			for (Valve valve : valves) {
+			for (Valve valve : dal.getValves()) {
 				World world = plugin.getServer().getWorld(valve.getWorldName());
 				if (world != null) {
 					enableValve(valve);
@@ -98,6 +100,17 @@ public class FountainsManager implements Listener, Runnable {
 					dal.deleteValve(valve);
 				}
 			}
+			logger.log(Level.INFO, String.format("Loaded %d Valves from database.", valves.size()));
+
+			for (Sprinkler sprinkler : dal.getSprinklers()) {
+				World world = plugin.getServer().getWorld(sprinkler.getWorldName());
+				if (world != null) {
+					enableSprinkler(sprinkler);
+				} else {
+					dal.deleteSprinkler(sprinkler);
+				}
+			}
+			logger.log(Level.INFO, String.format("Loaded %d Sprinklers from database.", sprinklers.size()));
 
 			Plugin dynmap = plugin.getServer().getPluginManager().getPlugin(DYNMAP_PLUGIN);
 			if (dynmap != null) {
@@ -105,15 +118,14 @@ public class FountainsManager implements Listener, Runnable {
 			}
 
 		} catch (DalException ex) {
-			logger.severe("Failed to initialize FountainsManager: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to initialize FountainsManager: " + ex.getMessage(), ex);
 		}
 	}
 
 	void shutdown() {
 		dynmapEnabled = false;
 		try {
-			List<Fountain> fountains = dal.getFountains();
-			for (Fountain fountain : fountains) {
+			for (Fountain fountain : dal.getFountains()) {
 				World world = plugin.getServer().getWorld(fountain.getWorldName());
 				if (world != null) {
 					disableFountain(fountain);
@@ -122,8 +134,7 @@ public class FountainsManager implements Listener, Runnable {
 				}
 			}
 
-			List<Intake> intakes = dal.getIntakes();
-			for (Intake intake : intakes) {
+			for (Intake intake : dal.getIntakes()) {
 				World world = plugin.getServer().getWorld(intake.getWorldName());
 				if (world != null) {
 					disableIntake(intake);
@@ -132,8 +143,7 @@ public class FountainsManager implements Listener, Runnable {
 				}
 			}
 
-			List<Valve> valves = dal.getValves();
-			for (Valve valve : valves) {
+			for (Valve valve : dal.getValves()) {
 				World world = plugin.getServer().getWorld(valve.getWorldName());
 				if (world != null) {
 					disableValve(valve);
@@ -141,8 +151,17 @@ public class FountainsManager implements Listener, Runnable {
 					dal.deleteValve(valve);
 				}
 			}
+
+			for (Sprinkler sprinkler : dal.getSprinklers()) {
+				World world = plugin.getServer().getWorld(sprinkler.getWorldName());
+				if (world != null) {
+					disableSprinkler(sprinkler);
+				} else {
+					dal.deleteSprinkler(sprinkler);
+				}
+			}
 		} catch (DalException ex) {
-			logger.severe("Failed to shutdown FountainsManager: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to shutdown FountainsManager: " + ex.getMessage(), ex);
 		}
 	}
 
@@ -150,7 +169,7 @@ public class FountainsManager implements Listener, Runnable {
 		try {
 			return dal.getFountains();
 		} catch (DalException ex) {
-			logger.severe("Failed to get fountains: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to get fountains: " + ex.getMessage(), ex);
 		}
 		return Collections.emptyList();
 	}
@@ -159,7 +178,7 @@ public class FountainsManager implements Listener, Runnable {
 		try {
 			return dal.getFountain(name);
 		} catch (DalException ex) {
-			logger.severe("Failed to get fountain: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to get fountain: " + ex.getMessage(), ex);
 		}
 		return null;
 	}
@@ -175,8 +194,10 @@ public class FountainsManager implements Listener, Runnable {
 			dal.saveFountain(fountain);
 			enableFountain(fountain);
 			return true;
+		} catch (DuplicateKeyException ex) {
+			sender.sendMessage(ChatColor.RED + "Fountain already exists with that name.");
 		} catch (DalException ex) {
-			logger.severe("Failed to create fountain: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to create fountain: " + ex.getMessage(), ex);
 		}
 		return false;
 	}
@@ -187,7 +208,7 @@ public class FountainsManager implements Listener, Runnable {
 			dal.deleteFountain(fountain);
 			return true;
 		} catch (DalException ex) {
-			logger.severe("Failed to remove fountain: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to remove fountain: " + ex.getMessage(), ex);
 		}
 		return false;
 	}
@@ -219,7 +240,7 @@ public class FountainsManager implements Listener, Runnable {
 		try {
 			return dal.getIntakes();
 		} catch (DalException ex) {
-			logger.severe("Failed to get intakes: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to get intakes: " + ex.getMessage(), ex);
 		}
 		return Collections.emptyList();
 	}
@@ -228,7 +249,7 @@ public class FountainsManager implements Listener, Runnable {
 		try {
 			return dal.getIntake(name);
 		} catch (DalException ex) {
-			logger.severe("Failed to get intake: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to get intake: " + ex.getMessage(), ex);
 		}
 		return null;
 	}
@@ -244,19 +265,23 @@ public class FountainsManager implements Listener, Runnable {
 			dal.saveIntake(intake);
 			enableIntake(intake);
 			return true;
+		} catch (DuplicateKeyException ex) {
+			sender.sendMessage(ChatColor.RED + "Intake already exists with that name.");
 		} catch (DalException ex) {
-			logger.severe("Failed to create intake: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to create intake: " + ex.getMessage(), ex);
 		}
 		return false;
 	}
 
-	public void removeIntake(Intake intake) {
+	public boolean removeIntake(Intake intake) {
 		try {
 			disableIntake(intake);
 			dal.deleteIntake(intake);
+			return true;
 		} catch (DalException ex) {
-			logger.severe("Failed to remove intake: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to remove intake: " + ex.getMessage(), ex);
 		}
+		return false;
 	}
 
 	private void enableIntake(Intake intake) {
@@ -295,7 +320,7 @@ public class FountainsManager implements Listener, Runnable {
 		try {
 			return dal.getValves();
 		} catch (DalException ex) {
-			logger.severe("Failed to get valves: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to get valves: " + ex.getMessage(), ex);
 		}
 		return Collections.emptyList();
 	}
@@ -304,7 +329,7 @@ public class FountainsManager implements Listener, Runnable {
 		try {
 			return dal.getValve(name);
 		} catch (DalException ex) {
-			logger.severe("Failed to get valve: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to get valve: " + ex.getMessage(), ex);
 		}
 		return null;
 	}
@@ -317,22 +342,26 @@ public class FountainsManager implements Listener, Runnable {
 				sender.sendMessage(Utils.colorSpan(ChatColor.RED, "This is already a valve."));
 				return false;
 			}
-			enableValve(valve);
 			dal.saveValve(valve);
+			enableValve(valve);
 			return true;
+		} catch (DuplicateKeyException ex) {
+			sender.sendMessage(ChatColor.RED + "Valve already exists with that name.");
 		} catch (DalException ex) {
-			logger.severe("Failed to create valve: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to create valve: " + ex.getMessage(), ex);
 		}
 		return false;
 	}
 
-	public void removeValve(Valve valve) {
+	public boolean removeValve(Valve valve) {
 		try {
 			disableValve(valve);
 			dal.deleteValve(valve);
+			return true;
 		} catch (DalException ex) {
-			logger.severe("Failed to remove valve: " + ex.getMessage());
+			logger.log(Level.SEVERE, "Failed to remove valve: " + ex.getMessage(), ex);
 		}
+		return false;
 	}
 
 	private void enableValve(Valve valve) {
@@ -357,6 +386,76 @@ public class FountainsManager implements Listener, Runnable {
 		}
 	}
 
+	public List<Sprinkler> getSprinklers() {
+		try {
+			return dal.getSprinklers();
+		} catch (DalException ex) {
+			logger.log(Level.SEVERE, "Failed to get sprinklers: " + ex.getMessage(), ex);
+		}
+		return Collections.emptyList();
+	}
+
+	public Sprinkler getSprinkler(String name) {
+		try {
+			return dal.getSprinkler(name);
+		} catch (DalException ex) {
+			logger.log(Level.SEVERE, "Failed to get sprinkler: " + ex.getMessage(), ex);
+		}
+		return null;
+	}
+
+	public boolean createSprinkler(CommandSender sender, Sprinkler sprinkler) {
+		try {
+			World world = plugin.getServer().getWorld(sprinkler.getWorldName());
+			Location loc = getLocation(world, sprinkler);
+			if (sprinklers.containsKey(loc)) {
+				sender.sendMessage(Utils.colorSpan(ChatColor.RED, "This is already a sprinkler."));
+				return false;
+			}
+			dal.saveSprinkler(sprinkler);
+			enableSprinkler(sprinkler);
+			return true;
+		} catch (DuplicateKeyException ex) {
+			sender.sendMessage(ChatColor.RED + "Sprinkler already exists with that name.");
+		} catch (DalException ex) {
+			logger.log(Level.SEVERE, "Failed to create sprinkler: " + ex.getMessage(), ex);
+		}
+		return false;
+	}
+
+	public boolean removeSprinkler(Sprinkler sprinkler) {
+		try {
+			disableSprinkler(sprinkler);
+			dal.deleteSprinkler(sprinkler);
+			return true;
+		} catch (DalException ex) {
+			logger.log(Level.SEVERE, "Failed to remove sprinkler: " + ex.getMessage(), ex);
+		}
+		return false;
+	}
+
+	private void enableSprinkler(Sprinkler sprinkler) {
+		World world = plugin.getServer().getWorld(sprinkler.getWorldName());
+		Location loc = getLocation(world, sprinkler);
+		sprinklers.put(loc, new Model<>(world, sprinkler));
+		if (dynmapEnabled && dynmapSprinklers != null) {
+			MarkerIcon icon = dynmapSprinklers.getDefaultMarkerIcon();
+			dynmapSprinklers.createMarker(sprinkler.getName(), "Sprinkler: \"" + sprinkler.getName() + "\"", false, loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), icon, false);
+		}
+	}
+
+	private void disableSprinkler(Sprinkler sprinkler) {
+		World world = plugin.getServer().getWorld(sprinkler.getWorldName());
+		Location loc = getLocation(world, sprinkler);
+		sprinklers.remove(loc);
+		if (dynmapEnabled && dynmapSprinklers != null) {
+			Marker marker = dynmapSprinklers.findMarker(sprinkler.getName());
+			if (marker != null) {
+				marker.deleteMarker();
+			}
+		}
+	}
+
 	public ILocatable findByLocation(Location location) {
 		if (fountains.containsKey(location)) {
 			return fountains.get(location).get();
@@ -367,6 +466,9 @@ public class FountainsManager implements Listener, Runnable {
 		else if (valves.containsKey(location)) {
 			return valves.get(location).get();
 		}
+		else if (sprinklers.containsKey(location)) {
+			return sprinklers.get(location).get();
+		}
 		return null;
 	}
 
@@ -375,9 +477,15 @@ public class FountainsManager implements Listener, Runnable {
 	public void onDispense(BlockDispenseEvent event) {
 		Block block = event.getBlock();
 		Location loc = block.getLocation();
-		if (fountains.containsKey(loc) && block instanceof Dispenser && event.getItem().getType() == Material.WATER_BUCKET) {
+		if (fountains.containsKey(loc) && block.getState() instanceof Dispenser && event.getItem().getType() == Material.WATER_BUCKET) {
 			DirectionalContainer dirContainer = (DirectionalContainer) ((Dispenser) block).getData();
 			if (dirContainer.getFacing() == BlockFace.UP) {
+				event.setCancelled(true);
+			}
+		}
+		if (sprinklers.containsKey(loc) && block.getState() instanceof Dispenser && event.getItem().getType() == Material.WATER_BUCKET) {
+			DirectionalContainer dirContainer = (DirectionalContainer) ((Dispenser) block).getData();
+			if (dirContainer.getFacing() == BlockFace.DOWN) {
 				event.setCancelled(true);
 			}
 		}
@@ -399,6 +507,10 @@ public class FountainsManager implements Listener, Runnable {
 		if (valves.containsKey(loc)) {
 			event.setCancelled(true);
 			event.getPlayer().sendMessage(ChatColor.RED + "This lamp is a valve. The valve must be removed before the lamp can be removed.");
+		}
+		if (sprinklers.containsKey(loc)) {
+			event.setCancelled(true);
+			event.getPlayer().sendMessage(ChatColor.RED + "This dispenser is a sprinkler. The sprinkler must be removed before the dispenser can be removed.");
 		}
 		if (block.getType() == Material.COBBLE_WALL && dynmapEnabled && dynmapPipes != null) {
 			enableDynmapPipes();
@@ -427,10 +539,10 @@ public class FountainsManager implements Listener, Runnable {
 	private void enableDynmap(DynmapAPI dynmapAPI) {
 		if (!dynmapEnabled && dynmapAPI.markerAPIInitialized()) {
 			MarkerAPI markerAPI = dynmapAPI.getMarkerAPI();
-			if (plugin.getConfig().getBoolean(CONFIG_DYNMAP_SHOW_FOUNTAINS)) {
+			if (config.getDynmapConfig().isShowFountains()) {
 				MarkerIcon icon = markerAPI.getMarkerIcon(DYNMAP_MARKER_ICON_FOUNTAIN);
 				if (icon == null) {
-					icon = markerAPI.createMarkerIcon(DYNMAP_MARKER_ICON_FOUNTAIN, "Fountains", plugin.getResource("icons/fountain.png"));
+					icon = markerAPI.createMarkerIcon(DYNMAP_MARKER_ICON_FOUNTAIN, "Fountains", plugin.getResource(R.resource.ICON_FOUNTAIN));
 				}
 				dynmapFountains = markerAPI.createMarkerSet(DYNMAP_MARKER_SET_FOUNTAIN, "Fountains", Collections.singleton(icon), false);
 				dynmapFountains.setDefaultMarkerIcon(icon);
@@ -440,10 +552,10 @@ public class FountainsManager implements Listener, Runnable {
 					dynmapFountains.createMarker(fountain.getName(), "Fountain: \"" + fountain.getName() + "\"", false, loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), icon, false);
 				}
 			}
-			if (plugin.getConfig().getBoolean(CONFIG_DYNMAP_SHOW_INTAKES)) {
+			if (config.getDynmapConfig().isShowIntakes()) {
 				MarkerIcon icon = markerAPI.getMarkerIcon(DYNMAP_MARKER_ICON_INTAKE);
 				if (icon == null) {
-					icon = markerAPI.createMarkerIcon(DYNMAP_MARKER_ICON_INTAKE, "Intakes", plugin.getResource("icons/intake.png"));
+					icon = markerAPI.createMarkerIcon(DYNMAP_MARKER_ICON_INTAKE, "Intakes", plugin.getResource(R.resource.ICON_INTAKE));
 				}
 				dynmapIntakes = markerAPI.createMarkerSet(DYNMAP_MARKER_SET_INTAKE, "Intakes", Collections.singleton(icon), false);
 				dynmapIntakes.setDefaultMarkerIcon(icon);
@@ -453,10 +565,10 @@ public class FountainsManager implements Listener, Runnable {
 					dynmapIntakes.createMarker(intake.getName(), "Intake: \"" + intake.getName() + "\"", false, loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), icon, false);
 				}
 			}
-			if (plugin.getConfig().getBoolean(CONFIG_DYNMAP_SHOW_VALVES)) {
+			if (config.getDynmapConfig().isShowValves()) {
 				MarkerIcon icon = markerAPI.getMarkerIcon(DYNMAP_MARKER_ICON_VALVE);
 				if (icon == null) {
-					icon = markerAPI.createMarkerIcon(DYNMAP_MARKER_ICON_VALVE, "Valves", plugin.getResource("icons/valve.png"));
+					icon = markerAPI.createMarkerIcon(DYNMAP_MARKER_ICON_VALVE, "Valves", plugin.getResource(R.resource.ICON_VALVE));
 				}
 				dynmapValves = markerAPI.createMarkerSet(DYNMAP_MARKER_SET_VALVE, "Valves", Collections.singleton(icon), false);
 				dynmapValves.setDefaultMarkerIcon(icon);
@@ -466,7 +578,20 @@ public class FountainsManager implements Listener, Runnable {
 					dynmapValves.createMarker(valve.getName(), "Valve: \"" + valve.getName() + "\"", false, loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), icon, false);
 				}
 			}
-			if (plugin.getConfig().getBoolean(CONFIG_DYNMAP_SHOW_PIPES)) {
+			if (config.getDynmapConfig().isShowSprinklers()) {
+				MarkerIcon icon = markerAPI.getMarkerIcon(DYNMAP_MARKER_ICON_SPRINKLER);
+				if (icon == null) {
+					icon = markerAPI.createMarkerIcon(DYNMAP_MARKER_ICON_SPRINKLER, "Sprinklers", plugin.getResource(R.resource.ICON_FOUNTAIN));
+				}
+				dynmapSprinklers = markerAPI.createMarkerSet(DYNMAP_MARKER_SET_SPRINKLER, "Sprinklers", Collections.singleton(icon), false);
+				dynmapSprinklers.setDefaultMarkerIcon(icon);
+				for (Map.Entry<Location, Model<Sprinkler>> entry : sprinklers.entrySet()) {
+					Location loc = entry.getKey();
+					Sprinkler sprinkler = entry.getValue().get();
+					dynmapSprinklers.createMarker(sprinkler.getName(), "Sprinkler: \"" + sprinkler.getName() + "\"", false, loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), icon, false);
+				}
+			}
+			if (config.getDynmapConfig().isShowPipes()) {
 				dynmapPipes = dynmapAPI.getMarkerAPI().createMarkerSet(DYNMAP_MARKER_SET_PIPES, "Pipes", null, false);
 				enableDynmapPipes();
 
@@ -570,6 +695,9 @@ public class FountainsManager implements Listener, Runnable {
 			if (fountains.containsKey(b.getLocation()) && fromPipe) {
 				destinations.add(b);
 			}
+			if (sprinklers.containsKey(b.getLocation()) && fromPipe) {
+				destinations.add(b);
+			}
 			return false;
 		};
 		walkPipes(new HashSet<>(), block, true, callback);
@@ -603,25 +731,68 @@ public class FountainsManager implements Listener, Runnable {
 						active = !redstonePowered;
 						break;
 				}
-				if (inventory.contains(Material.WATER_BUCKET) && active) {
-					inventory.remove(Material.WATER_BUCKET);
-					model.reset();
-					model.setOn(true);
-				} else if (model.getCounter() < power + Fountain.MAX_POWER) {
-					model.increment();
-				} else {
-					model.setOn(false);
+				if (active) {
+					if (inventory.contains(Material.WATER_BUCKET)) {
+						inventory.remove(Material.WATER_BUCKET);
+						model.reset();
+						model.setOn(true);
+					} else if (model.getCounter() < power + Fountain.MAX_POWER) {
+						model.increment();
+					} else {
+						model.setOn(false);
+					}
+					if (model.isOn()) {
+						int height = power + Fountain.MAX_POWER - model.getCounter();
+						if (height < 0) height = 0;
+						if (height > power) height = power;
+						buildWaterColumn(model.getWorld(), loc, height);
+						for (Player player : plugin.getServer().getOnlinePlayers()) {
+							Location playerLoc = player.getLocation().clone();
+							if (isLocationWithinWaterColumn(playerLoc, loc, height)) {
+								player.setVelocity(new Vector(0, power * 0.05, 0));
+							}
+						}
+					}
 				}
-				if (model.isOn()) {
-					int height = power + Fountain.MAX_POWER - model.getCounter();
-					if (height < 0) height = 0;
-					if (height > power) height = power;
-					buildWaterColumn(model.getWorld(), loc, height);
-					for (Player player : plugin.getServer().getOnlinePlayers()) {
-						Location playerLoc = player.getLocation().clone();
-						if (isLocationWithinWaterColumn(playerLoc, loc, height)) {
-							playerLoc.setY(playerLoc.getY() + 0.5);
-							player.teleport(playerLoc);
+			}
+		}
+
+		for (Map.Entry<Location, Model<Sprinkler>> entry : sprinklers.entrySet()) {
+			Location location = entry.getKey();
+			Model<Sprinkler> model = entry.getValue();
+			Block block = model.getWorld().getBlockAt(location);
+			if (block.getType() == Material.DISPENSER && block.getState() instanceof Dispenser) {
+				Inventory inventory = ((Dispenser) block.getState()).getInventory();
+				Sprinkler sprinkler = model.get();
+				int spread = sprinkler.getSpread();
+				boolean redstonePowered = block.isBlockIndirectlyPowered() || block.isBlockPowered();
+				boolean active = true;
+				switch (sprinkler.getRedstoneRequirementState()) {
+					case ACTIVE:
+						active = redstonePowered;
+						break;
+					case INACTIVE:
+						active = !redstonePowered;
+						break;
+				}
+				if (active) {
+					if (inventory.contains(Material.WATER_BUCKET)) {
+						inventory.remove(Material.WATER_BUCKET);
+						model.reset();
+						model.setOn(true);
+					} else if (model.getCounter() < spread + Fountain.MAX_POWER) {
+						model.increment();
+					} else {
+						model.setOn(false);
+					}
+					if (model.isOn()) {
+						for (int i = 0; i < spread * 20; i++) {
+							double randAngle = rng.nextDouble() * 2 * Math.PI;
+							double randDistance = rng.nextDouble() * spread;
+							double xOffset = Math.cos(randAngle) * randDistance;
+							double zOffset = Math.sin(randAngle) * randDistance;
+							double yOffset = randDistance * 3 / Sprinkler.MAX_SPREAD;
+							entry.getValue().getWorld().spawnParticle(Particle.WATER_DROP, location.getX() + 0.5 + xOffset, location.getY() - 0.1 - yOffset, location.getZ() + 0.5 + zOffset, 1);
 						}
 					}
 				}
@@ -651,10 +822,8 @@ public class FountainsManager implements Listener, Runnable {
 						break;
 				}
 				if (above.getType() == Material.WATER || above.getType() == Material.STATIONARY_WATER && active) {
-					model.increment();
-					if (model.getCounter() > (Intake.MAX_SPEED - intake.getSpeed())) {
-						model.reset();
-						List<Block> pipeDestinations = propagatePipes(block);
+					List<Block> pipeDestinations = propagatePipes(block);
+					for (int i = 0; i < intake.getSpeed(); i++) {
 						if (pipeDestinations.isEmpty()) {
 							Inventory inventory = ((Hopper) block.getState()).getInventory();
 							inventory.addItem(new ItemStack(Material.WATER_BUCKET));

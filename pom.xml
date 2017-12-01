@@ -6,7 +6,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.schneenet</groupId>
 	<artifactId>fountainsplugin</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<name>Fountains</name>
 	<description>Fountains Bukkit/Spigot plugin</description>
 	<packaging>jar</packaging>
