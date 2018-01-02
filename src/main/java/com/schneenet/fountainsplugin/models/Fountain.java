@@ -2,7 +2,9 @@ package com.schneenet.fountainsplugin.models;
 
 public class Fountain implements ILocatable, IRequireRedstone
 {
-	public static final int MAX_POWER = 10;
+	public static final int MAX_POWER = 16;
+
+	public static final int MIN_FILL_POWER = 11;
 	
 	private long id;
 	private String worldName;

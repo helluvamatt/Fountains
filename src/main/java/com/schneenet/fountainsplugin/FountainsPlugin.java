@@ -2,7 +2,6 @@ package com.schneenet.fountainsplugin;
 
 import com.schneenet.fountainsplugin.actions.*;
 import com.schneenet.fountainsplugin.config.FountainsConfig;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.HandlerList;
@@ -24,8 +23,8 @@ public class FountainsPlugin extends JavaPlugin {
 	private static final String ACTION_CREATE = "create";
 	private static final String ACTION_REMOVE = "remove";
 	private static final String ACTION_LIST = "list";
-	private static final String ACTION_QUERY = "query";
 
+	private FountainsConfig config;
 	private FountainsManager manager;
 
 	@Override
@@ -34,8 +33,9 @@ public class FountainsPlugin extends JavaPlugin {
 		try {
 			saveDefaultConfig();
 			File dbFile = new File(dataFolder, DB_NAME);
+			config = new FountainsConfig(getConfig());
 			FountainsDal dal = new FountainsDal(dbFile);
-			this.manager = new FountainsManager(this, new FountainsConfig(getConfig()), dal, getLogger());
+			this.manager = new FountainsManager(this, config, dal, getLogger());
 			getServer().getPluginManager().registerEvents(manager, this);
 			getServer().getScheduler().scheduleSyncRepeatingTask(this, manager, 0L, 1L);
 		} catch (DalException ex) {
@@ -59,88 +59,76 @@ public class FountainsPlugin extends JavaPlugin {
 			String action = argList.isEmpty() ? null : argList.remove(0);
 			if (action != null) {
 				if (action.equalsIgnoreCase(ACTION_LIST)) {
-					new ListFountainsAction(manager, argList.toArray(new String[]{})).run(sender);
+					new ListFountainsAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else if (action.equalsIgnoreCase(ACTION_CREATE)) {
-					new CreateFountainAction(manager, argList.toArray(new String[]{})).run(sender);
+					new CreateFountainAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else if (action.equalsIgnoreCase(ACTION_REMOVE)) {
-					new RemoveFountainAction(manager, argList.toArray(new String[]{})).run(sender);
-					return true;
-				} else if (action.equalsIgnoreCase(ACTION_QUERY)) {
-					new QueryAction(manager, argList.toArray(new String[] {})).run(sender);
+					new RemoveFountainAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else {
-					sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Invalid action.") + " <action> must be one of 'create', 'remove', 'list', 'query'.");
+					sender.sendMessage(config.getLocalization().getFormattedString(R.string.errors_invalid_action));
 				}
 			} else {
-				sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Not enough arguments."));
+				sender.sendMessage(config.getLocalization().getFormattedString(R.string.errors_not_enough_args));
 			}
 		} else if (command.getName().equalsIgnoreCase(CMD_INTAKES)) {
 			if (!sender.hasPermission("fountains.intakes")) return false;
 			String action = argList.isEmpty() ? null : argList.remove(0);
 			if (action != null) {
 				if (action.equalsIgnoreCase(ACTION_LIST)) {
-					new ListIntakesAction(manager, argList.toArray(new String[]{})).run(sender);
+					new ListIntakesAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else if (action.equalsIgnoreCase(ACTION_CREATE)) {
-					new CreateIntakeAction(manager, argList.toArray(new String[]{})).run(sender);
+					new CreateIntakeAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else if (action.equalsIgnoreCase(ACTION_REMOVE)) {
-					new RemoveIntakeAction(manager, argList.toArray(new String[]{})).run(sender);
-					return true;
-				} else if (action.equalsIgnoreCase(ACTION_QUERY)) {
-					new QueryAction(manager, argList.toArray(new String[] {})).run(sender);
+					new RemoveIntakeAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else {
-					sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Invalid action.") + " <action> must be one of 'create', 'remove', 'list', 'query'.");
+					sender.sendMessage(config.getLocalization().getFormattedString(R.string.errors_invalid_action));
 				}
 			} else {
-				sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Not enough arguments."));
+				sender.sendMessage(config.getLocalization().getFormattedString(R.string.errors_not_enough_args));
 			}
 		} else if (command.getName().equalsIgnoreCase(CMD_VALVES)) {
 			if (!sender.hasPermission("fountains.valves")) return false;
 			String action = argList.isEmpty() ? null : argList.remove(0);
 			if (action != null) {
 				if (action.equalsIgnoreCase(ACTION_LIST)) {
-					new ListValvesAction(manager, argList.toArray(new String[]{})).run(sender);
+					new ListValvesAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else if (action.equalsIgnoreCase(ACTION_CREATE)) {
-					new CreateValveAction(manager, argList.toArray(new String[]{})).run(sender);
+					new CreateValveAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else if (action.equalsIgnoreCase(ACTION_REMOVE)) {
-					new RemoveValveAction(manager, argList.toArray(new String[]{})).run(sender);
-					return true;
-				} else if (action.equalsIgnoreCase(ACTION_QUERY)) {
-					new QueryAction(manager, argList.toArray(new String[] {})).run(sender);
+					new RemoveValveAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else {
-					sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Invalid action.") + " <action> must be one of 'create', 'remove', 'list', 'query'.");
+					sender.sendMessage(config.getLocalization().getFormattedString(R.string.errors_invalid_action));
 				}
 			} else {
-				sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Not enough arguments."));
+				sender.sendMessage(config.getLocalization().getFormattedString(R.string.errors_not_enough_args));
 			}
 		} else if (command.getName().equalsIgnoreCase(CMD_SPRINKLERS)) {
 			if (!sender.hasPermission("fountains.sprinklers")) return false;
 			String action = argList.isEmpty() ? null : argList.remove(0);
 			if (action != null) {
 				if (action.equalsIgnoreCase(ACTION_LIST)) {
-					new ListSprinklersAction(manager, argList.toArray(new String[]{})).run(sender);
+					new ListSprinklersAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else if (action.equalsIgnoreCase(ACTION_CREATE)) {
-					new CreateSprinklerAction(manager, argList.toArray(new String[]{})).run(sender);
+					new CreateSprinklerAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else if (action.equalsIgnoreCase(ACTION_REMOVE)) {
-					new RemoveSprinklerAction(manager, argList.toArray(new String[]{})).run(sender);
-					return true;
-				} else if (action.equalsIgnoreCase(ACTION_QUERY)) {
-					new QueryAction(manager, argList.toArray(new String[] {})).run(sender);
+					new RemoveSprinklerAction(manager, argList.toArray(new String[]{}), config.getLocalization()).run(sender);
 					return true;
 				} else {
-					sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Invalid action.") + " <action> must be one of 'create', 'remove', 'list', 'query'.");
+					sender.sendMessage(config.getLocalization().getFormattedString(R.string.errors_invalid_action));
 				}
 			} else {
-				sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Not enough arguments."));
+				sender.sendMessage(config.getLocalization().getFormattedString(R.string.errors_not_enough_args));
 			}
 		}
 		return false;

@@ -2,7 +2,8 @@ package com.schneenet.fountainsplugin.models;
 
 public class Intake implements ILocatable, IRequireRedstone
 {
-	public static final int MAX_SPEED = 10;
+	public static final int MAX_SPEED = 16;
+	public static final int MIN_DRAIN_SPEED = 11;
 	
 	private long id;
 	private String name;

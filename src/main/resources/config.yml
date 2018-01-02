@@ -4,5 +4,95 @@ dynmap:
   showValves: false
   showSprinklers: false
   showPipes: false
+
+# Localization strings:
+#   Messages and other strings shown to players
+#   Some messages include maze details: {name} and {color} will be replaced with the maze name and color character respectively
+#   Some messages will be parsed for color and formatting: %{char} where {char} is a single character will be replaced by the appropriate format code for the given color, use %% to display a literal % (percent) character
+#     Chat color and format codes:
+#       Black: %0
+#       Dark Blue: %1
+#       Dark Green: %2
+#       Dark Aqua: %3
+#       Dark Red: %4
+#       Dark Purple: %5
+#       Gold: %6
+#       Gray: %7
+#       Dark Gray: %8
+#       Blue: %9
+#       Green: %a
+#       Aqua: %b
+#       Red: %c
+#       Light Purple: %d
+#       Yellow: %e
+#       White: %f
+#       Magic: %k
+#       Bold: %l
+#       Strike-through: %m
+#       Underline: %n
+#       Italic: %o
+#       Reset: %r
 strings:
+  fountains: "Fountains"
+  intakes: "Intakes"
+  valves: "Valves"
+  sprinklers: "Sprinklers"
+  pipes: "Pipes"
+  fountain: "Fountain: \"{name}\""
+  intake: "Intake: \"{name}\""
+  valve: "Valve: \"{name}\""
+  sprinkler: "Sprinkler: \"{name}\""
+  locatableTypeListingPrefix: "%b%l{type}%r: "
+  listingLocatable: "%9%o{name}%r [World: %a{world}%r] ({x}, {y}, {z})"
+  listingFountain: " Power: %b{power}%r Redstone: %c{redstone}%r"
+  listingIntake: " Speed: %b{speed}%r Redstone: %c{redstone}%r"
+  listingSprinkler: " Spread: %b{spread}%r Redstone: %c{redstone}%r"
+  createdFountain: "%aFountain \"{name}\" created."
+  removedFountain: "%aFountain \"{name}\" removed."
+  createdIntake: "%aIntake \"{name}\" created."
+  removedIntake: "%aIntake \"{name}\" removed."
+  createdValve: "%aValve \"{name}\" created."
+  removedValve: "%aValve \"{name}\" removed."
+  createdSprinkler: "%aSprinkler \"{name}\" created."
+  removedSprinkler: "%aSprinkler \"{name}\" removed."
+  redstoneInvalid: "%6Redstone value invalid. Redstone will be ignored."
+  errors:
+    invalidAction: "%cInvalid action.%r <action> must be one of 'create', 'remove', 'list'."
+    notEnoughArgs: "%cNot enough arguments."
+    onlyPlayers: "%cOnly players can execute this command."
+    missingRequiredArg: "%cMissing required argument:%r \"{arg}\" Usage: {usage}"
+    fountainExists: "%cThis is already a fountain."
+    fountainDuplicate: "%cFountain already exists with that name."
+    intakeExists: "%cThis is already an intake."
+    intakeDuplicate: "%cIntake already exists with that name."
+    valveExists: "%cThis is already a valve."
+    valveDuplicate: "%cValve already exists with that name."
+    sprinklerExists: "%cThis is already a sprinkler."
+    sprinklerDuplicate: "%cSprinkler already exists with that name."
+    cannotBreakFountain: "%cThis dispenser is a fountain. The fountain \"{name}\" must be removed before the dispenser can be removed."
+    cannotBreakIntake: "%cThis hopper is an intake. The intake \"{name}\" must be removed before the hopper can be removed."
+    cannotBreakValve: "%cThis lamp is a valve. The valve \"{name}\" must be removed before the lamp can be removed."
+    cannotBreakSprinkler: "%cThis dispenser is a sprinkler. The sprinkler \"{name}\" must be removed before the dispenser can be removed."
+    invalidTargetFountain: "%cTarget is invalid.%r Make sure you are looking at a Dispenser facing up from within 16 blocks."
+    invalidTargetIntake: "%cTarget is invalid.%r Make sure you are looking at a Dropper from within 16 blocks."
+    invalidTargetValve: "%cTarget is invalid.%r Make sure you are looking at a Lamp from within 16 blocks."
+    invalidTargetSprinkler: "%cTarget is invalid.%r Make sure you are looking at a Dropper from within 16 blocks."
+    genericCreateFountain: "%cAn error occurred while creating the fountain."
+    genericCreateIntake: "%cAn error occurred while creating the intake."
+    genericCreateValve: "%cAn error occurred while creating the valve."
+    genericCreateSprinkler: "%cAn error occurred while creating the sprinkler."
+    powerFormat: "%cPower must be a whole number."
+    speedFormat: "%cSpeed must be a whole number."
+    spreadFormat: "%cSpread must be a whole number."
+    notFoundFountain: "%cFountain not found with the name \"{name}\"."
+    notFoundIntake: "%cIntake not found with the name \"{name}\"."
+    notFoundValve: "%cValve not found with the name \"{name}\"."
+    notFoundSprinkler: "%cSprinkler not found with the name \"{name}\"."
+    genericRemoveFountain: "%cAn error occurred while removing the fountain \"{name}\"."
+    genericRemoveIntake: "%cAn error occurred while removing the intake \"{name}\"."
+    genericRemoveValve: "%cAn error occurred while removing the valve \"{name}\"."
+    genericRemoveSprinkler: "%cAn error occurred while removing the sprinkler \"{name}\"."
+    drainAreaTooLarge: "%6Warning: This body of water cannot be drained because it is too large."
+    fillAreaTooLarge: "%6Warning: This pool cannot be filled because it is too large."
+
 

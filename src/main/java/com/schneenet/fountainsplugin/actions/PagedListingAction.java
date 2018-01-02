@@ -1,5 +1,6 @@
 package com.schneenet.fountainsplugin.actions;
 
+import com.schneenet.fountainsplugin.config.Strings;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
@@ -13,9 +14,9 @@ public abstract class PagedListingAction extends Action {
 
 	private static final int PAGE_SIZE = 10;
 
-	protected PagedListingAction(String[] args)
+	PagedListingAction(String[] args, Strings l10n)
 	{
-		super(args);
+		super(args, l10n);
 		if (args.length > 0)
 		{
 			String pageArg = args[0];
@@ -54,7 +55,7 @@ public abstract class PagedListingAction extends Action {
 		}
 	}
 
-	protected <T> List<String> select(List<T> list, Function<T, String> action)
+	<T> List<String> select(List<T> list, Function<T, String> action)
 	{
 		ArrayList<String> sList = new ArrayList<>();
 		for (T item : list)

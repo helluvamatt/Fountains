@@ -1,10 +1,10 @@
 package com.schneenet.fountainsplugin.actions;
 
 import com.schneenet.fountainsplugin.FountainsManager;
-import com.schneenet.fountainsplugin.Utils;
+import com.schneenet.fountainsplugin.R;
+import com.schneenet.fountainsplugin.config.Strings;
 import com.schneenet.fountainsplugin.models.RedstoneRequirementState;
 import com.schneenet.fountainsplugin.models.Sprinkler;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
@@ -12,24 +12,28 @@ import org.bukkit.entity.Player;
 
 public class CreateSprinklerAction extends Action {
 
-	private static final String USAGE = "Usage: /sprinklers create <name> <spread> [<redstone state>]";
+	private static final String USAGE = "/sprinklers create <name> <spread> [<redstone state>]";
 
 	private FountainsManager manager;
 
-	public CreateSprinklerAction(FountainsManager manager, String[] args) {
-		super(args);
+	public CreateSprinklerAction(FountainsManager manager, String[] args, Strings l10n) {
+		super(args, l10n);
 		this.manager = manager;
 	}
 
 	@Override
 	public void run(CommandSender sender) {
 		if (!(sender instanceof Player)) {
-			sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Only players can execute this command."));
+			sender.sendMessage(l10n.getFormattedString(R.string.errors_only_players));
 			return;
 		}
 		Player player = (Player) sender;
+		if (args.length < 1) {
+			sender.sendMessage(l10n.getFormattedString(R.string.errors_missing_required_arg, "name", USAGE));
+			return;
+		}
 		if (args.length < 2) {
-			sender.sendMessage(Utils.colorSpan(ChatColor.RED, "Missing required argument.") + " " + USAGE);
+			sender.sendMessage(l10n.getFormattedString(R.string.errors_missing_required_arg, "spread", USAGE));
 			return;
 		}
 		try {
@@ -46,19 +50,19 @@ public class CreateSprinklerAction extends Action {
 						redstoneState = RedstoneRequirementState.ACTIVE;
 					else if (redstone.equalsIgnoreCase("off") || redstone.equalsIgnoreCase("inactive"))
 						redstoneState = RedstoneRequirementState.INACTIVE;
-					else sender.sendMessage("Redstone value invalid. Redstone will be ignored.");
+					else sender.sendMessage(l10n.getFormattedString(R.string.redstone_invalid));
 				}
 				Sprinkler sprinkler = new Sprinkler(name, player.getWorld().getName(), target.getX(), target.getY(), target.getZ(), spread, redstoneState);
 				if (manager.createSprinkler(sender, sprinkler)) {
-					sender.sendMessage(ChatColor.GREEN + "Sprinkler created.");
+					sender.sendMessage(l10n.getFormattedString(R.string.created_sprinkler, name));
 				} else {
-					sender.sendMessage(ChatColor.RED + "An error occurred while creating the sprinkler.");
+					sender.sendMessage(l10n.getFormattedString(R.string.errors_generic_create_sprinkler));
 				}
 			} else {
-				sender.sendMessage(ChatColor.RED + "Target is invalid. Make sure you are looking at a Dropper from within 16 blocks.");
+				sender.sendMessage(l10n.getFormattedString(R.string.errors_invalid_target_sprinkler));
 			}
 		} catch (NumberFormatException ex) {
-			sender.sendMessage(ChatColor.RED + "Spread must be a whole number.");
+			sender.sendMessage(l10n.getFormattedString(R.string.errors_spread_format));
 		}
 	}
 }

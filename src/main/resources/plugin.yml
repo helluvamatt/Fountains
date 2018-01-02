@@ -1,6 +1,6 @@
 name: Fountains
 main: com.schneenet.fountainsplugin.FountainsPlugin
-version: 0.0.2-SNAPSHOT
+version: 0.0.3-SNAPSHOT
 author: helluvamatt
 commands:
   fountains:
